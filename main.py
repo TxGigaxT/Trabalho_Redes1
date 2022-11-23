@@ -8,7 +8,66 @@ import matplotlib.pyplot as plt
 
 # Press Shift+F10 to execute it or replace it with your code.   47,68
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-def TesteVazao():
+def TesteVazao(protc, alvo, port,qnt,PLOT):
+    own_id = os.getpid() & 0xFFFF
+    header = struct.pack("!BBHHH", 8, 0, 0, own_id, 1)
+    print(header)
+    # padBytes = []
+    # startVal = 0x41
+    # for i in range(startVal, startVal + (58)):
+    #     padBytes += [(i & 0x7f)]  # Keep chars in the 0-255 range
+    INIT = 102400
+    data = bytearray(INIT)
+    print(data)
+    packet = header + data
+    #print(packet)
+    x = []
+    div = 0.95
+    multi = 1.05
+    print("ICMP:")
+    while qnt>0:
+        try:
+            packet = header + data
+            inicio = time.time_ns()
+            #print("1")
+            protc.sendto(packet, (alvo, 1))
+            #print("2")
+            #rec = protc.recvfrom(1024)
+            #print("3")
+            fim = (time.time_ns() - inicio)
+            #print("4")
+            fim = (fim * 0.000001)
+            #print(rec[0])
+            print("envio de ",len(packet),"bytes, bytes, em %.2f"%fim, "ms")
+            qnt-=1
+            x.append(INIT/1024)
+            INIT = int(INIT*multi)
+            if(div < 1):
+                div = float(div*1.001)
+            if(div >= 1):
+                div = float(div*0.998)
+            multi*= 1.001
+            data = bytearray(INIT)
+        except:
+            print("pacote muito grande, reduzindo...")
+            INIT = int(INIT*div)
+            if(multi > 1):
+                multi = float(0.999 * multi)
+            #div = float(div * 0.998)
+            data = bytes(INIT)
+            qnt-=1
+            #break
+    if(PLOT == 1):
+        plt.rcParams["figure.figsize"] = [10, 5]
+        plt.rcParams["figure.autolayout"] = True
+        plt.title("Speed_Teste")
+        plt.xlabel("Solicitações")
+        plt.ylabel("Mb")
+        plt.grid(color='k', linestyle='-', linewidth=0.5)
+        plt.plot(x, 'bo-', color='blue', markersize=5)
+        plt.show()
+    else:
+        return x
     print("entrou teste vazao")
 
 
@@ -58,7 +117,7 @@ def TTCP(protc, alvo, port,M,PLOT):
 
 def ICMP(protc, alvo, port,qnt,PLOT):
     own_id = os.getpid() & 0xFFFF
-    header = struct.pack("!BBHHH", 8, 0, 0, own_id, 0)
+    header = struct.pack("!BBHHH", 8, 0, 0, own_id, 1)
     print(header)
     padBytes = []
     startVal = 0x41
@@ -76,13 +135,13 @@ def ICMP(protc, alvo, port,qnt,PLOT):
             #print("1")
             protc.sendto(packet, (alvo, 1))
             #print("2")
-            rec = protc.recvfrom(1024)
+            #rec = protc.recvfrom(1024)
             #print("3")
             fim = (time.time_ns() - inicio)
             #print("4")
             fim = (fim * 0.000001)
-            print(rec[0])
-            print("envio de ",len(packet),"bytes, recebido ",len(rec[0])," bytes, em %.2f"%fim, "ms")
+            #print(rec[0])
+            print("envio de ",len(packet),"bytes, em %.2f"%fim, "ms")
             qnt-=1
             x.append(fim)
         except:
@@ -170,7 +229,7 @@ def menu(TCP, UDP):
             "############################\n1 - Teste de vazao\n2 - Latência\n3 - Largura de banda\n0 - Sair\n############################\n"))
         match opcao:
             case 1:
-                TesteVazao()
+                TesteVazao(UDP,"google.com",1,500,1)
             case 2:
                 Latencia(TCP, UDP)
             case 3:
